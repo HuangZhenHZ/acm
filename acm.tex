@@ -12,10 +12,9 @@
 
 \begin{document}
 
-\title{acm-icpc template}
+\title{HZ的acm模板}
 \author{HZ}
 \maketitle
-
 \tableofcontents
 
 \section{基本内容}
@@ -34,6 +33,7 @@
 #define OP operator
 typedef long long LL;
 typedef double D;
+const D pi=acos(-1);
 \end{lstlisting}
 
 \subsection{快速输入输出}
@@ -106,28 +106,6 @@ IL void write(char s[]){
 }
 \end{lstlisting}
 
-\subsection{哈希表}
-\begin{lstlisting}
-const int H=(1<<20)-1;
-struct hash_map{
-	int la[1<<20],top;
-	struct E { LL key; int da,ne; } e[int(1e6)];
-	IL void clear(){
-		memset(la,0,sizeof(la)); top=0;
-	}
-	IL bool count(LL k){
-		static int i; i=la[k&H];
-		while (i&&e[i].key!=k) i=e[i].ne;
-		return i;
-	}
-	IL int& OP[] (LL k){
-		static int h,i; i=la[h=k&H];
-		while (i&&e[i].key!=k) i=e[i].ne;
-		if (!i){ e[i=++top]=(E){k,0,la[h]}; la[h]=top; }
-		return e[i].da;
-	}
-};
-\end{lstlisting}
 
 \section{数学基础}
 
@@ -249,31 +227,20 @@ IL LL C(int n, int m){
 }
 \end{lstlisting}
 
-\subsection{分数类和高斯消元}
+\subsection{分数类}
 \begin{lstlisting}
-#include<bits/stdc++.h>
-#define forto(i,a,b) for(int i=(a);i<=(b);i++)
-#define ABS(x) ((x)>=0?(x):-(x))  
-#define IL inline
-#define OP operator
 #define RR const R &
-typedef long long LL;
 
-IL LL gcd(LL a, LL b){  
-	while (b) { LL c=a%b; a=b; b=c; }
-	return a;
-}
-
-struct R{  
+struct R{
 	LL x,y;
 
-	IL void sim(){  
+	IL void sim(){ 
 		if (y<0) { x=-x; y=-y; }
 		LL d=gcd(ABS(x),y);
 		x/=d; y/=d;
 	}
 
-	IL void pri() const { 
+	IL void pri() const {
 		printf("%lld",x);
 		if (y>1) printf("/%lld",y);
 	}
@@ -298,7 +265,10 @@ IL R OP/ (RR a, RR b){
 	R c=(R){a.x*b.y, a.y*b.x};
 	c.sim(); return c;
 }
+\end{lstlisting}
 
+\subsection{高斯消元}
+\begin{lstlisting}
 const int N=1000;
 int n,m;
 R a[N][N];
@@ -335,25 +305,10 @@ void solve(){
 	}
 	putchar('\n');
 }
-
-int main(){
-	while (true) solve();
-	return 0;
-}
 \end{lstlisting}
 
 \subsection{FFT}
 \begin{lstlisting}
-#include<cstdlib>
-#include<cstdio>
-#include<cmath>
-
-#define forto(i,a,b) for(int i=(a);i<=(b);i++)
-#define fordown(i,a,b) for(int i=(a);i>=(b);i--)
-
-const double pi=acos(-1);
-const int N=300000;
-
 struct P{ double x,y; };
 P operator+ (const P &a, const P &b) { return (P){a.x+b.x, a.y+b.y}; }
 P operator- (const P &a, const P &b) { return (P){a.x-b.x, a.y-b.y}; }
@@ -744,6 +699,93 @@ void zkw()
 			dfs(0,inf);
 		}
     }
+}
+\end{lstlisting}
+
+\section{数据结构}
+
+\subsection{哈希表}
+\begin{lstlisting}
+const int H=(1<<20)-1;
+struct hash_map{
+	int la[1<<20],top;
+	struct E { LL key; int da,ne; } e[int(1e6)];
+	IL void clear(){
+		memset(la,0,sizeof(la)); top=0;
+	}
+	IL bool count(LL k){
+		static int i; i=la[k&H];
+		while (i&&e[i].key!=k) i=e[i].ne;
+		return i;
+	}
+	IL int& OP[] (LL k){
+		static int h,i; i=la[h=k&H];
+		while (i&&e[i].key!=k) i=e[i].ne;
+		if (!i){ e[i=++top]=(E){k,0,la[h]}; la[h]=top; }
+		return e[i].da;
+	}
+};
+\end{lstlisting}
+
+\subsection{左偏树}
+\begin{lstlisting}
+int a[N],lc[N],rc[N],d[N],size[N];
+
+int merge(int x, int y){
+	if (x==0) return y;
+	if (y==0) return x;
+	if (a[x]<a[y]){ int z=x; x=y; y=z; }
+	rc[x]=merge(rc[x],y);
+	if (d[rc[x]]>d[lc[x]]){ int t=lc[x]; lc[x]=rc[x]; rc[x]=t; }
+	d[x]=d[rc[x]+1];
+	size[x]=size[lc[x]]+size[rc[x]]+1;
+	return x;
+}
+
+int pop(int x){
+	return merge(lc[x],rc[x]);
+}
+\end{lstlisting}
+
+\subsection{可持久化并查集}
+\begin{lstlisting}
+const int N=10000000;
+int lc[N],rc[N],f[N],top;
+
+int get(int x, int l, int r, int t){
+	if (l==r) return f[x];
+	int m=(l+r)>>1;
+	if (t<=m) return get(lc[x],l,m,t);
+	return get(rc[x],m+1,r,t);
+}
+
+int change(int x, int l, int r, int t, int d){
+	if (l==r){
+		f[++top]=d;
+		return top;
+	}
+	int y=++top; lc[y]=lc[x]; rc[y]=rc[x];
+	int m=(l+r)>>1;
+	if (t<=m) lc[y]=change(lc[y],l,m,t,d);
+		else rc[y]=change(rc[y],m+1,r,t,d);
+	return y;
+}
+
+void build(int x, int l, int r){
+	if (l==r){ f[x]=l; return; }
+	int m=(l+r)>>1;
+	build(lc[x]=++top,l,m);
+	build(rc[x]=++top,m+1,r);
+}
+	
+int a[200100],n,m;
+
+int find(int i, int x){
+	int fx=get(a[i],1,n,x);
+	if (x==fx) return x;
+	fx=find(i,fx);
+	a[i]=change(a[i],1,n,x,fx);
+	return fx;
 }
 \end{lstlisting}
 
