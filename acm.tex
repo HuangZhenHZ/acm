@@ -138,7 +138,8 @@ IL void sim(LL &a, LL n){ a%=n; if (a<0) a+=n; }
 
 IL LL solve(LL a, LL b, LL n){  // a*x==b (mod n)
 	sim(a,n); sim(b,n);  // optional
-	static LL d,x,y; gcd(a,n,d,x,y);
+	static LL d,x,y;
+	gcd(a,n,d,x,y);
 	if (b%d) return -1;
 	b/=d; n/=d;
 	if (x<0) x+=n;
@@ -204,6 +205,37 @@ LL bsgs(LL a, LL b, LL n){
 		b=b*v%n;
 	}
 	return -1;
+}
+\end{lstlisting}
+
+\subsection{hzwer的bsgs}
+\begin{lstlisting}
+//BSGS
+//y^x==z (mod p) ->x=?
+scanf("%d%d%d",&y,&z,&p),y%=p,z%=p;j=z;
+if(y==0){puts("Cannot find x");continue;}
+for(k=s=1;k*k<=p;k++);
+std::map<int,int>hash;flag=0;
+for(int i=0;i<k;i++,s=1LL*s*y%p,j=1LL*j*y%p)hash[j]=i;
+for(int i=1,j=s;i<=k&&!flag;i++,j=1LL*j*s%p)
+if(hash.count(j))ans=i*k-hash[j],flag=1;
+if(flag==0)puts("Cannot find x");
+else printf("%d\n",ans);
+
+//exBSGS
+int bsgs(int a,ll b,int p){
+    if(a%=p,b%=p,b==1)return 0;
+    ll t=1;int f,g,delta=0,m=sqrt(p)+1,i;
+    for(g=gcd(a,p);g!=1;g=gcd(a,p)){
+        if(b%g)return -1;
+        b/=g,p/=g,t=t*(a/g)%p,delta++;
+        if(b==t)return delta;
+    }
+    std::map<int,int>hash;
+    for(i=0;i<m;i++,b=b*a%p)hash[b]=i;
+    for(i=1,f=power(a,m);i<=m+1;i++)
+    if(t=t*f%p,hash.count(t))return i*m-hash[t]+delta;
+    return -1;
 }
 \end{lstlisting}
 
@@ -397,8 +429,10 @@ void extkmp(char s1[], int ext1[], char s2[], int ext2[]){
 
 \subsection{后缀数组}
 \begin{lstlisting}
+char s[N];
 int n,sa[N],rk[N<<1],c[N],x[N],h[N];
-void suffix_array(int s[]){
+
+void suffix_array(){
 	forto(i,1,n){ sa[i]=i; rk[i]=s[i]; }
 	for(int m=300,k=0; k<n; k?k<<=1:k++){
 		forto(i,1,m) c[i]=0;
@@ -475,6 +509,30 @@ void add(int c){
 
 \section{图论}
 
+\subsection{树的直径}
+\begin{lstlisting}
+int bfs(int x){
+	q[l=r=1]=x;
+	forto(i,1,n) dis[i]=-1;
+	dis[x]=0;
+	int ans=x;
+	while (l<=r){
+		x=q[l++];
+		for(int i=la[x];i;i=e[i].ne){
+			int y=e[i].to;
+			if (dis[y]==-1){
+				dis[y]=dis[x]+e[i].dis;
+				if (dis[y]>dis[ans]) ans=y;
+				q[++r]=y;
+			}
+		}
+	}
+	return ans;
+}
+
+int x=bfs(1);  int y=bfs(x);
+\end{lstlisting}
+
 \subsection{强连通分量}
 \begin{lstlisting}
 int dfn[N],low[N],time;
@@ -527,6 +585,8 @@ void dfs(int x, int fa){
 		scc[sta[top--]]=scc_cnt;
 	}	
 }
+
+dfs(1,0);
 \end{lstlisting}
 
 \subsection{网络流}
@@ -1539,6 +1599,45 @@ inline void add(int x, int d){
 }
 \end{lstlisting}
 
+\subsection{树链剖分}
+\begin{lstlisting}
+void find(int x, int father, int depth){
+    size[x]=1; dep[x]=depth; son[x]=0; fa[x]=father;
+    int maxsize=0;
+    for (int i=0; i<g[x].size(); i++)
+    if (g[x][i]!=father){
+        int y=g[x][i];
+        find(y,x,depth+1);
+        size[x]+=size[y];
+        if (size[y]>maxsize){
+            maxsize=size[y];
+            son[x]=y;
+        }
+    }
+}
+
+void connect(int x, int anc){
+    tid[x]=++label; top[x]=anc;
+    if (son[x]) connect(son[x], anc);
+    for (int i=0; i<g[x].size(); i++){
+        int y=g[x][i];
+        if (y!=son[x] && y!=fa[x]) connect(y,y);
+    }
+}
+
+int getsum(int x, int y){
+    int sumnum=0;
+    while (top[x]!=top[y]){
+        if (dep[top[x]]<dep[top[y]]) { int z=x; x=y; y=z; }
+        sumnum+=seq.getsum(tid[top[x]],tid[x]);
+        x=fa[top[x]];
+    }
+    if (dep[x]<dep[y]) sumnum+=seq.getsum(tid[x],tid[y]);
+        sumnum+=seq.getsum(tid[y],tid[x]);
+    return sumnum;
+}
+\end{lstlisting}
+
 \subsection{LCT}
 \begin{lstlisting}
 int n,fa[maxn],ch[maxn][2];
@@ -1583,6 +1682,156 @@ inline int find(int x){
 	access(x);
 	int y=x; while (ch[y][0]) y=ch[y][0];
 	return y;
+}
+\end{lstlisting}
+
+\subsection{LCT 不换根}
+\begin{lstlisting}
+//bzoj2002
+
+#include<cstdio>
+
+const int N=210000;
+
+int fa[N],ch[N][2],size[N];
+
+inline bool ir(int x){ return ch[fa[x]][0]!=x&&ch[fa[x]][1]!=x; }
+inline bool nt(int x){ return ch[fa[x]][1]==x; }
+inline void ud(int x){ size[x]=size[ch[x][0]]+size[ch[x][1]]+1; }
+
+void rtt(int x){
+	int y=fa[x], z=fa[y]; bool p=nt(x);
+	if (!ir(y)) ch[z][nt(y)]=x;
+	fa[y]=x; fa[x]=z; fa[ch[x][!p]]=y;
+	ch[y][p]=ch[x][!p]; ch[x][!p]=y;
+	ud(y);
+}
+
+void splay(int x){
+	while (!ir(x)){
+		int y=fa[x];
+		if (!ir(y)) rtt(nt(x)^nt(y)?x:y);
+		rtt(x);
+	}
+	ud(x);
+}
+
+void access(int x){
+	int y=x, t=0;
+	while (x){
+		splay(x); ch[x][1]=t;
+		t=x; x=fa[x];
+	}
+	splay(y);
+}	
+	
+void link(int c, int f){ access(c); fa[c]=f; }
+void cut(int x){ access(x); fa[ch[x][0]]=0; ch[x][0]=0; }
+
+int main(){
+	int n; scanf("%d",&n);
+	for (int i=1;i<=n;i++) size[i]=1;
+	for (int i=1;i<=n;i++){
+		int k; scanf("%d",&k);
+		if (i+k<=n) link(i,i+k);
+	}
+	int m; scanf("%d",&m);
+	while (m--){
+		int i,j,k; scanf("%d%d",&i,&j); j++;
+		if (i==1){
+			access(j);
+			printf("%d\n",size[j]);
+		}
+		if (i==2){
+			scanf("%d",&k);
+			cut(j);
+			if (j+k<=n) link(j,j+k);
+		}
+	}
+	return 0;
+}
+\end{lstlisting}
+
+\subsection{LCT 换根}
+\begin{lstlisting}
+//bzoj2049
+
+#include<cstdlib>
+#include<cstdio>
+#define swap(a,b) {swp=a;a=b;b=swp;}
+int swp;
+
+inline void readint(int &x){
+	x=0; char c=getchar();
+	while (c<'0'||c>'9') c=getchar();
+	while (c>='0'&&c<='9'){ x=x*10+c-'0'; c=getchar(); }
+}
+
+const int maxn=11000;
+
+int n,m,fa[maxn],ch[maxn][2],sta[maxn],top;
+bool rev[maxn];
+
+inline bool ir(int x){ return ch[fa[x]][0]!=x && ch[fa[x]][1]!=x; }
+inline bool nt(int x){ return ch[fa[x]][1]==x; }
+
+inline void pd(int x){
+	if (rev[x]){
+		rev[ch[x][0]]^=1; rev[ch[x][1]]^=1;
+		swap(ch[x][0],ch[x][1]); rev[x]=false;
+	}
+}
+
+inline void rtt(int x){
+	int y=fa[x], z=fa[y]; bool p=nt(x);
+	if (!ir(y)) ch[z][nt(y)]=x;
+	fa[ch[x][!p]]=y; fa[y]=x; fa[x]=z;
+	ch[y][p]=ch[x][!p]; ch[x][!p]=y;
+}
+
+inline void splay(int x){
+	top=0; sta[++top]=x;
+	for (int y=x;!ir(y);y=fa[y]) sta[++top]=fa[y];
+	while (top) pd(sta[top--]);
+	while (!ir(x)){
+		int y=fa[x];
+		if (!ir(y)) rtt(nt(x)^nt(y)?x:y);
+		rtt(x);
+	}
+}
+
+inline void access(int x){
+	int t=0;
+	while (x){
+		splay(x); ch[x][1]=t;
+		t=x; x=fa[x];
+	}
+} 
+
+inline void makeroot(int x){ access(x); splay(x); x[rev]^=1; }
+
+inline void link(int x, int y){ makeroot(x); fa[x]=y; }
+
+inline void cut(int x, int y){ makeroot(x); access(y); splay(y); ch[y][0]=fa[x]=0; }
+
+inline int find(int x){
+	access(x); splay(x);
+	int y=x; while (ch[y][0]) y=ch[y][0];
+	return y;
+};	
+
+int main(){
+	readint(n); readint(m);
+	while (m--){
+		char s[10]; scanf("%s",s);
+		int x,y; readint(x); readint(y);
+		if (s[0]=='Q'){
+			if (find(x)==find(y)) printf("Yes\n"); else printf("No\n");
+		}
+		if (s[0]=='C') link(x,y);
+		if (s[0]=='D') cut(x,y);
+	}
+	return 0;
 }
 \end{lstlisting}
 
@@ -1645,6 +1894,341 @@ int find(int i, int x){
 	fx=find(i,fx);
 	a[i]=change(a[i],1,n,x,fx);
 	return fx;
+}
+\end{lstlisting}
+
+\subsection{可持久化treap}
+\begin{lstlisting}
+#include<cstdlib>
+#include<cstdio>
+#define MIN(a,b) ((a)<(b)?(a):(b))
+using namespace std;
+
+struct treap{
+	int data,fix;
+	int size,add,min;
+	bool flip;
+	treap *l,*r;
+	treap(int data):data(data), size(1), fix(rand()), l(NULL), r(NULL), add(0), min(data), flip(false){}
+	
+	void update(){
+		size=(l?l->size:0)+(r?r->size:0)+1;
+		min=data;
+		if (l) min=MIN(min,l->min);
+		if (r) min=MIN(min,r->min);
+		min+=add;
+	}
+	
+	void pushdown(){
+		if (add){
+			if (l) l->add+=add;
+			if (r) r->add+=add;
+			data+=add;
+			add=0;
+		}
+		if (flip){
+			flip=false;
+			treap *t;
+			t=l; l=r; r=t;
+			if (l) l->flip=!l->flip;
+			if (r) r->flip=!r->flip;
+		}
+		if (l) l->update();
+		if (r) r->update();
+	}
+};
+
+inline int size(treap *a){ return a?a->size:0; }
+
+treap *merge(treap *a, treap *b){
+	if (a==NULL) return b;
+	if (b==NULL) return a;
+	if (a->fix > b->fix){
+		a->pushdown();
+		a->r=merge(a->r,b);
+		a->update();
+		return a;
+	} else {
+		b->pushdown();
+		b->l=merge(a,b->l);
+		b->update();
+		return b;
+	}
+}
+
+void split(treap *x, int s, treap *&a, treap *&b){
+	if (s<=0) { a=NULL; b=x; return; }
+	if (s>=size(x)) { a=x; b=NULL; return; }
+	x->pushdown();
+	if (s<=size(x->l)) {
+		split(x->l,s,a,b);
+		x->l=b; b=x;
+	} else {
+		split(x->r,s-size(x->l)-1,a,b);
+		x->r=a; a=x;
+	}
+	x->update();
+	return;
+}
+
+void split3(treap *root, int x, int y, treap *&a, treap *&b, treap *&c){
+	treap *t;
+	split(root,x-1,a,t);
+	split(t,y-x+1,b,c);
+}
+
+treap *merge3(treap *a, treap *b, treap *c){
+	treap *t=merge(a,b);
+	return merge(t,c);
+}
+
+treap *newnode(int data){
+	treap *t=new treap(data);
+	return t;
+}
+
+treap *root;
+
+int main(){
+	int n; scanf("%d",&n);
+	for (int i=1;i<=n;i++){
+		int data; scanf("%d",&data);
+		root=merge(root,newnode(data));
+	}
+	
+	int m; scanf("%d",&m);
+	for (int i=1;i<=m;i++){
+		int x,y,z;
+		treap *a,*b,*c;
+		char s[20]; scanf("%s",s);
+		
+		if (s[0]=='A'){
+			scanf("%d%d%d",&x,&y,&z);
+			split3(root,x,y,a,b,c);
+			if (b) b->add+=z;
+			b->update();
+			root=merge3(a,b,c);
+		}
+		
+		if (s[0]=='R' && s[3]=='E'){
+			scanf("%d%d",&x,&y);
+			split3(root,x,y,a,b,c);
+			if (b) b->flip=!b->flip;
+			root=merge3(a,b,c);
+		}
+		
+		if (s[0]=='R' && s[3]=='O'){
+			scanf("%d%d%d",&x,&y,&z);
+			split3(root,x,y,a,b,c);
+			if (b){
+				z%=size(b);
+				if (z<0) z+=size(b);
+				treap *t1,*t2;
+				split(b,size(b)-z,t1,t2);
+				b=merge(t2,t1);
+			}
+			root=merge3(a,b,c);
+		}
+		
+		if (s[0]=='I'){
+			scanf("%d%d",&x,&y);
+			split(root,x,a,b);
+			root=merge(merge(a,newnode(y)),b);
+		}
+		
+		if (s[0]=='D'){
+			scanf("%d",&x);
+			split3(root,x,x,a,b,c);
+			if (b) delete b;
+			root=merge(a,c);
+		}
+		
+		if (s[0]=='M'){
+			scanf("%d%d",&x,&y);
+			split3(root,x,y,a,b,c);
+			b->update();
+			printf("%d\n",b->min);
+			root=merge3(a,b,c);
+		}
+	}
+	return 0;
+}
+\end{lstlisting}
+
+\subsection{pq的妙用1}
+\begin{lstlisting}
+IL int gcd(int a, int b){
+	while (b){ int c=a%b; a=b; b=c; }
+	return a;
+}
+
+struct data { int a,b,x,y; };
+
+IL bool OP< (const data &a, const data &b){
+	return LL(a.x)*LL(b.y) > LL(a.y)*LL(b.x);
+}
+
+const int N=120000;
+int n,L,d[N],v[N];
+
+IL data get(int a, int b){
+	int dd=d[a]-d[b];
+	int vv=v[b]-v[a];
+	if (vv<0) { vv=-vv; dd=-dd; }
+	if (dd<0) dd+=L;
+	return (data){a,b,dd,vv};
+}
+
+int l[N],r[N];
+std::priority_queue<data> q;
+bool ok[N];
+int ansx,ansy;
+
+struct co { int num,dis; } c[N];
+IL bool comp(const co &a, const co &b) { return a.dis<b.dis; }
+
+IL void solve(){
+	scanf("%d%d",&n,&L);
+	forto(i,1,n) scanf("%d",&d[i]);
+	forto(i,1,n) scanf("%d",&v[i]);
+	
+	forto(i,1,n) c[i]=(co){i,d[i]};
+	std::sort(c+1,c+n+1,comp);
+	
+	forto(i,2,n) l[c[i].num]=c[i-1].num;
+	l[c[1].num]=c[n].num;
+	
+	forto(i,1,n-1) r[c[i].num]=c[i+1].num;
+	r[c[n].num]=c[1].num;
+	
+	forto(i,1,n) ok[i]=true;
+	
+	while (!q.empty()) q.pop();
+	forto(i,1,n) q.push(get(i,r[i]));
+	
+	forto(ttt,2,n){
+		data da=q.top(); q.pop();
+		
+		while (!ok[da.a]||!ok[da.b]) {
+			da=q.top(); q.pop();
+		}
+		
+		int a=da.a, b=da.b;
+		ansx=da.x, ansy=da.y;
+		
+		if (r[b]==a) std::swap(a,b);
+		if (a>b){
+			ok[b]=false;
+			r[a]=r[b];
+			l[r[a]]=a;
+			q.push(get(a,r[a]));
+		} else {
+			ok[a]=false;
+			l[b]=l[a];
+			r[l[b]]=b;
+			q.push(get(b,l[b]));
+		}
+	}
+	
+	int g=gcd(ansx,ansy);
+	ansx/=g; ansy/=g;
+	if (ansx) printf("%d/%d\n",ansx,ansy); else printf("0\n");
+}
+
+int main(){
+	int test; scanf("%d",&test);
+	while (test--) solve();
+}
+\end{lstlisting}
+
+\subsection{pq的妙用2}
+\begin{lstlisting}
+#include <bits/stdc++.h>
+#define forto(i,a,b) for(int i=(a);i<=(b);i++)
+typedef double D;
+const D eps=1e-8;
+
+const int N=200200;
+
+struct data { D x; int k; D t; } a[N];
+
+inline bool comp1(const data &a, const data &b){
+	return a.x<b.x;
+}
+
+struct meet { int xx,yy; D t,x; };
+
+inline bool operator< (const meet &a, const meet &b){
+	return a.t>b.t;
+}
+
+bool get(data a, data b, D &t, D &x){
+	if (a.t>b.t) std::swap(a,b);
+	D va=100.0/a.k;
+	D vb=100.0/b.k;
+	a.x+=va*(b.t-a.t);
+	a.t=b.t;
+	if (a.x>b.x) { std::swap(a,b); std::swap(va,vb); }
+	if (b.x-a.x<=eps){
+		x=a.x;
+		t=a.t;
+		return true;
+	}	
+	if (a.k>=b.k) return false;
+	t=(b.x-a.x)/(va-vb);
+	x=a.x+t*va;
+	t+=a.t;
+	return true;
+}
+
+int l[N],r[N];
+std::priority_queue<meet> q;
+
+bool b[N];
+
+int main(){
+	int n; scanf("%d",&n);
+	forto(i,1,n) scanf("%d%lf",&a[i].k,&a[i].x);
+	std::sort(a+1,a+n+1,comp1);
+	forto(i,2,n) l[i]=i-1;
+	forto(i,2,n) r[i-1]=i;
+	
+	forto(i,2,n){
+		D t,x;
+		if (get(a[i-1],a[i],t,x)) q.push((meet){i-1,i,t,x});
+	}
+	
+	while (!q.empty()){
+		meet m=q.top(); q.pop();
+		while (!q.empty() && (b[m.xx]||b[m.yy])) { m=q.top(); q.pop(); }
+		if (b[m.xx]||b[m.yy]) break;
+		
+		int p1=m.xx, p2=m.yy;
+		
+		n++;
+		a[n].x=m.x;
+		a[n].k=a[p1].k+a[p2].k;
+		a[n].t=m.t;
+		
+		if (r[p2]==p1) std::swap(p1,p2);
+		l[n]=l[p1];
+		r[l[n]]=n;
+		
+		r[n]=r[p2];
+		l[r[n]]=n;
+		
+		b[p1]=b[p2]=true;
+		
+		D t,x;
+		if (l[n] && get(a[n],a[l[n]],t,x)) q.push((meet){n,l[n],t,x});
+		if (r[n] && get(a[n],a[r[n]],t,x)) q.push((meet){n,r[n],t,x});
+	}
+	
+	int ans=0;
+	forto(i,1,n) if (!b[i]) ans++;
+	printf("%d\n",ans);
+	forto(i,1,n) if (!b[i]) printf("%d ",a[i].k);
+	return 0;
 }
 \end{lstlisting}
 
