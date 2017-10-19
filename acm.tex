@@ -445,6 +445,34 @@ void manacher(){
 }
 \end{lstlisting}
 
+\subsection{回文自动机}
+\begin{lstlisting}
+const int N=300000+100, alpha=26;
+int n,s[N],num[N];
+int p,last,next[N][alpha],fail[N],len[N],cnt[N];
+void init(){
+	s[n=0]=len[p=2]=-1;
+	fail[fail[last=1]=2]=2;
+}
+int getfail(int x){
+	while (s[n-len[x]-1]!=s[n]) x=fail[x];
+	return x;
+}
+void add(int c){
+	s[++n]=c;
+	int cur=getfail(last);
+	if (!next[cur][c]){
+		len[++p]=len[cur]+2;
+		fail[p]=next[getfail(fail[cur])][c];
+		if (!fail[p]) fail[p]=1;
+		next[cur][c]=p;
+	}
+	last=next[cur][c];
+	cnt[last]++;
+}
+\end{lstlisting}
+
+
 \section{图论}
 
 \subsection{强连通分量}
@@ -544,6 +572,47 @@ int maxflow(){
 		flow+=dinic(1,inf);
 	}
 	return flow;
+}
+\end{lstlisting}
+
+\subsection{费用流}
+\begin{lstlisting}
+struct E{ int to,cap,dis,ne; } e[M<<1];
+int n,la[N],e_top;
+
+void add(int x, int y, int cap, int dis){
+	e[++e_top]=(E){y,cap,dis,la[x]}; la[x]=e_top;
+	e[++e_top]=(E){x,0,-dis,la[y]}; la[y]=e_top;
+}
+int dis[N],q[N],l,r,prex[N],prei[N],low[N];
+bool vis[N];
+
+bool spfa(){
+	forto(i,1,n){ dis[i]=inf; vis[i]=false; }
+	dis[1]=0; vis[1]=true; low[1]=inf;
+	q[l=r=1]=1;
+	while (l<=r){
+		int x=q[l++]; vis[x]=false;
+		forE(i,x,y,z) if (e[i].cap && dis[x]+z<dis[y]){
+			dis[y]=dis[x]+z;
+			prex[y]=x; prei[y]=i; low[y]=MIN(low[x],e[i].cap);
+			if (vis[y]==false) vis[q[++r]=y]=true;
+		}
+	}
+	return dis[n]!=inf;
+}
+int flow,cost;
+
+void mcmf(){
+	while (spfa()){
+		for(int x=n;x!=1;x=prex[x]){
+			int i=prei[x];
+			e[i].cap-=low[n];
+			e[i^1].cap+=low[n];
+		}
+		flow+=low[n];
+		cost+=low[n]*dis[n];
+	}
 }
 \end{lstlisting}
 
@@ -702,6 +771,724 @@ void zkw()
 }
 \end{lstlisting}
 
+\subsection{欧拉回路}
+\begin{lstlisting}
+#include<cstdlib>
+#include<cstdio>
+
+#define forto(i,a,b) for(int i=(a);i<=(b);i++)
+#define fordown(i,a,b) for(int i=(a);i>=(b);i--)
+#define forE(i,x) for(int i=la[x];i;i=e[i].ne)
+
+const int N=100100, M=200200;
+
+struct E{ int to,ne; } e[M<<1];
+int t,n,m,la[N],e_top;
+int in[N],out[N];
+
+void add(int x, int y){
+	out[x]++; in[y]++;
+	e[++e_top]=(E){y,la[x]}; la[x]=e_top;
+}
+
+int sta[M],top;
+bool vis[M<<1];
+
+void dfs(int x){
+	for(int i=la[x];i;i=la[x]){
+		la[x]=e[i].ne;
+		if (!vis[i]){
+			if (t==1) vis[i]=vis[i^1]=true; else vis[i]=true;
+			la[x]=e[i].ne;
+		
+			dfs(e[i].to);
+		
+			if (t==1) sta[++top]=(i&1)?(-(i>>1)):(i>>1);
+				else sta[++top]=i;
+		}
+	}
+}
+
+int main(){
+	scanf("%d",&t);
+	scanf("%d%d",&n,&m);
+	if (m==0){
+		printf("YES");
+		return 0;
+	}
+	
+	if (t==1) e_top=1;
+	forto(i,1,m){
+		int x,y; scanf("%d%d",&x,&y);
+		if (t==1){ add(x,y); add(y,x); }
+		if (t==2) add(x,y);
+	}
+	
+	if (t==1)
+	forto(i,1,n) if (in[i]&1){
+		printf("NO");
+		return 0;
+	}
+	
+	if (t==2)
+	forto(i,1,n) if (in[i]!=out[i]){
+		printf("NO");
+		return 0;
+	}
+	
+	if (t==1) dfs(e[2].to); else dfs(e[1].to);
+	
+	if (top!=m){
+		printf("NO");
+		return 0;
+	}
+	
+	printf("YES\n");
+	fordown(i,top,1) printf("%d ",sta[i]);
+	return 0;
+}
+\end{lstlisting}
+
+\subsection{带花树}
+\begin{lstlisting}
+#include<cstdlib>
+#include<cstdio>
+
+#define forto(i,a,b) for(int i=(a);i<=(b);i++)
+#define fordown(i,a,b) for(int i=(a);i>=(b);i--)
+#define forE(i,x) for(int i=la[x];i;i=e[i].ne)
+#define add(x,y) { e[++e_top]=(E){y,la[x]}; la[x]=e_top; }
+
+const int N=550;
+
+struct E{ int to,ne; } e[N*N];
+int n,m,la[N],e_top;
+
+int f[N];
+int find(int x){ return f[x]==x?x:f[x]=find(f[x]); }
+
+int mat[N],pre[N],cond[N],q[N],l,r;
+
+int vis[N],vt;
+int lca(int x, int y){
+	vt++; x=find(x); y=find(y);
+	while (vis[x]!=vt){
+		if (x){ vis[x]=vt; x=find(pre[mat[x]]); }
+		int z=x; x=y; y=z;
+	}
+	return x;
+}
+
+void blossom(int x, int y, int g){
+	while (find(x)!=g){
+		pre[x]=y;
+		if (cond[mat[x]]==1) cond[q[++r]=mat[x]]=0;
+		if (f[x]==x) f[x]=g;
+		if (f[mat[x]]==mat[x]) f[mat[x]]=g;
+		y=mat[x]; x=pre[y];
+	}
+}
+
+int match(int s){
+	forto(i,1,n){ cond[i]=-1; pre[i]=0; f[i]=i; }
+	cond[q[l=r=1]=s]=0;
+	while (l<=r){
+		int x=q[l++];
+		forE(i,x){
+			int y=e[i].to;
+			if (cond[y]==-1){
+				if (mat[y]==0){
+					while (x){
+						int t=mat[x];
+						mat[x]=y; mat[y]=x;
+						y=t; x=pre[y];
+					}
+					return true;
+				}
+				cond[y]=1; pre[y]=x;
+				cond[q[++r]=mat[y]]=0;
+			} else if (find(x)!=find(y) && cond[y]==0){
+				int g=lca(x,y); blossom(x,y,g); blossom(y,x,g);
+			}
+		}
+	}
+	return false;
+}
+
+int main(){
+	scanf("%d%d",&n,&m);
+	int ans=0;
+	while (m--){
+		int x,y; scanf("%d%d",&x,&y);
+		add(x,y); add(y,x);
+	}
+	forto(i,1,n) if (!mat[i]&&match(i)) ans++;
+	printf("%d\n",ans);
+	forto(i,1,n) printf("%d ",mat[i]);
+	return 0;
+}
+\end{lstlisting}
+
+\subsection{KM}
+\begin{lstlisting}
+#include<cstdlib>
+#include<cstdio>
+
+#define forto(i,a,b) for(int i=(a);i<=(b);i++)
+#define fordown(i,a,b) for(int i=(a);i>=(b);i--)
+
+#define MIN(a,b) ((a)<(b)?(a):(b))
+#define MAX(a,b) ((a)>(b)?(a):(b))
+#define cmin(a,b) ((b)<(a)?(a)=(b):(a))
+#define cmax(a,b) ((b)>(a)?(a)=(b):(a))
+
+typedef long long LL;
+const int N=500, inf=0x7fffffff;
+
+int n,fx[N],fy[N],pre[N];
+LL w[N][N],lx[N],ly[N],sla[N];
+bool vx[N],vy[N],a[N][N];
+int q[N],l,r;
+
+bool check(int x, int y){
+	if (!fy[y]){
+		while (x){
+			int t=fx[x];
+			fx[x]=y; fy[y]=x;
+			y=t; x=pre[y];
+		}
+		return true;
+	}
+	vy[y]=true; pre[y]=x;
+	vx[q[++r]=fy[y]]=true;
+	return false;
+}
+
+void bfs(int s){
+	forto(i,1,n){ vx[i]=vy[i]=false; sla[i]=inf; }
+	vx[q[l=r=1]=s]=true;
+	while (true){
+		while (l<=r){
+			int x=q[l++];
+			forto(y,1,n) if (!vy[y]){
+				LL t=lx[x]+ly[y]-w[x][y];
+				if (t==0 && check(x,y)) return;
+				if (t && t<sla[y]){ sla[y]=t; pre[y]=x; }
+			}
+		}
+		int d=inf;
+		forto(y,1,n) if (!vy[y]) cmin(d,sla[y]);
+		forto(x,1,n) if (vx[x]) lx[x]-=d;
+		forto(y,1,n) if (vy[y]) ly[y]+=d; else sla[y]-=d;
+		forto(y,1,n) if (!vy[y] && !sla[y] && check(pre[y],y)) return;
+	}
+}
+
+void KM(){
+	forto(x,1,n){
+		lx[x]=w[x][1];
+		forto(y,2,n) cmax(lx[x],w[x][y]);
+	}
+	forto(s,1,n) bfs(s);
+}
+
+int main(){
+	int nl,nr,m;
+	scanf("%d%d%d",&nl,&nr,&m);
+	while (m--){
+		int x,y,z; scanf("%d%d%d",&x,&y,&z);
+		w[x][y]=z; a[x][y]=true;
+	}
+	n=MAX(nl,nr);
+	
+	KM();
+	LL ans=0;
+	forto(i,1,n) ans+=lx[i];
+	forto(j,1,n) ans+=ly[j];
+	printf("%lld\n",ans);
+	forto(i,1,nl) if (a[i][fx[i]]) printf("%d ",fx[i]); else printf("0 ");
+	return 0;
+}
+\end{lstlisting}
+
+\subsection{最小树形图}
+\begin{lstlisting}
+#include<cstdlib>
+#include<cstdio>
+#include<cmath>
+
+#define forto(i,a,b) for(int i=(a);i<=(b);i++)
+#define fordown(i,a,b) for(int i=(a);i>=(b);i--)
+
+#define MIN(a,b) ((a)<(b)?(a):(b))
+#define MAX(a,b) ((a)>(b)?(a):(b))
+
+const int N=110, M=40000, inf=0x7fffffff;
+struct E{ int to,ne; double dis; } e[M];
+int n,m,la[N],g[N],e_top;
+
+void add1(int x, int y, double z){
+	e[++e_top]=(E){y,g[x],z}; g[x]=e_top;
+	e[++e_top]=(E){x,la[y],z}; la[y]=e_top;
+}
+
+void add2(int x, int y, double z){
+	e[++e_top]=(E){y,la[x],z}; la[x]=e_top;
+}
+
+void build_graph(){
+	static int x[N],y[N];
+	forto(i,1,n) la[i]=g[i]=0;
+	e_top=0;
+	forto(i,1,n) scanf("%d%d",&x[i],&y[i]);
+	forto(i,1,m){
+		int a,b; scanf("%d%d",&a,&b);
+		add1( a,b,sqrt( (x[a]-x[b])*(x[a]-x[b]) + (y[a]-y[b])*(y[a]-y[b]) ) );
+	}
+}
+
+int q[N],l,r;
+bool vis[N];
+
+bool check(){
+	forto(i,1,n) vis[i]=false;
+	q[l=r=1]=1; vis[1]=true;
+	while (l<=r){
+		int x=q[l++];
+		for(int i=g[x];i;i=e[i].ne){
+			int y=e[i].to;
+			if (vis[y]==false){
+				vis[y]=true;
+				q[++r]=y;
+			}
+		}
+	}
+	return r==n;
+}
+
+int f[N];
+
+int find(int x){
+	return f[x]==x?x:f[x]=find(f[x]);
+}
+
+bool ok[N];
+int sta[N],top;
+double cho[N];
+
+double solve(){
+	double ans=0;
+	forto(i,1,n) f[i]=i;
+	forto(i,1,n) ok[i]=vis[i]=false;
+	ok[1]=true;
+	
+	forto(t,1,n){
+		vis[sta[top=1]=find(t)]=true;
+		while (ok[sta[top]]==false){
+			int x=sta[top], y=0; double z=1e100;
+			for(int i=la[x];i;i=e[i].ne)
+			if (find(e[i].to)!=x && e[i].dis<z){
+				z=e[i].dis;
+				y=e[i].to;
+			}
+			
+			y=find(y);
+			
+			cho[x]=z;
+			ans+=z;
+			
+			if (vis[y]){
+				for(int i=la[y];i;i=e[i].ne) e[i].dis-=cho[y];
+				while (sta[top]!=y){
+					vis[ x=sta[top--] ]=false;
+					for(int i=la[x];i;i=e[i].ne) add2(y, e[i].to, e[i].dis-cho[x]);
+					f[x]=y;
+				}
+			} else vis[sta[++top]=y]=true;
+		}
+		while (top){
+			ok[sta[top]]=true;
+			vis[sta[top--]]=false;
+		}
+	}
+	return ans;
+}
+			
+int main(){
+	while (scanf("%d%d",&n,&m)>0){
+		build_graph();	
+		if (check()) printf("%.2f\n",solve()); else printf("poor snoopy\n");
+	}
+	return 0;
+}
+\end{lstlisting}
+
+\subsection{最小树形图输出路径}
+\begin{lstlisting}
+using namespace std;  
+  
+const int INF=0x3f3f3f3f;  
+const int maxn=2001000;  
+  
+int n,m;  
+  
+struct Edge  
+{  
+    int u,v,cost,id,ru,rv,rcost;  
+}edge[maxn];  
+  
+void add_Edge(int id,int u,int v,int c)  
+{  
+    edge[id].id=id;  
+    edge[id].u=edge[id].ru=u;  
+    edge[id].v=edge[id].rv=v;  
+    edge[id].cost=edge[id].rcost=c;  
+}  
+  
+int pre[maxn],id[maxn],vis[maxn],in[maxn];  
+  
+//// !!!!  
+int preid[maxn],useE[maxn];  
+int eA[maxn],eD[maxn];  
+int ex;  
+  
+int zhuliu(int root,int n,int m,Edge edge[])  
+{  
+    int ex=m,res=0;  
+    while(true)  
+    {  
+        for(int i=0;i<n;i++) in[i]=INF;  
+        for(int i=0;i<m;i++)  
+        {  
+            if(edge[i].u!=edge[i].v&&edge[i].cost<in[edge[i].v])  
+            {  
+                pre[edge[i].v]=edge[i].u;  
+                in[edge[i].v]=edge[i].cost;  
+  
+                //// !!!!  
+                preid[edge[i].v]=edge[i].id;  
+            }  
+        }  
+        for(int i=0;i<n;i++)  
+            if(i!=root&&in[i]==INF) return -1;  
+        int tn=0;  
+        memset(id,-1,sizeof(id));  
+        memset(vis,-1,sizeof(vis));  
+        in[root]=0;  
+        for(int i=0;i<n;i++)  
+        {  
+            res+=in[i];  
+            int v=i;  
+            //// !!!!  
+            if(i!=root) useE[preid[i]]++;  
+            while(vis[v]!=i&&id[v]==-1&&v!=root)  
+            {  
+                vis[v]=i; v=pre[v];  
+            }  
+            if(v!=root&&id[v]==-1)  
+            {  
+                for(int u=pre[v];u!=v;u=pre[u]) id[u]=tn;  
+                id[v]=tn++;  
+            }  
+        }  
+        if(tn==0) break;  
+        for(int i=0;i<n;i++)  
+            if(id[i]==-1) id[i]=tn++;  
+        for(int i=0;i<m;i++)  
+        {  
+            int v=edge[i].v;  
+            edge[i].u=id[edge[i].u];  
+            edge[i].v=id[edge[i].v];  
+            if(edge[i].u!=edge[i].v)  
+            {  
+                edge[i].cost-=in[v];  
+                //// !!!!  
+                eA[ex]=edge[i].id;  
+                eD[ex]=preid[v];  
+                edge[i].id=ex;  
+                ex++;  
+            }  
+        }  
+        n=tn;  
+        root=id[root];  
+    }  
+  
+    //// !!!!  
+    for(int i=ex-1;i>=m;i--)  
+    {  
+        if(useE[i])  
+        {  
+            useE[eA[i]]++; useE[eD[i]]--;  
+        }  
+    }  
+  
+    return res;  
+}  
+  
+int main()  
+{  
+    freopen("input.txt","r",stdin);  
+    freopen("output.txt","w",stdout);  
+      
+    scanf("%d%d",&n,&m);  
+  
+    for(int i=0,a,b,c;i<m;i++)  
+    {  
+        scanf("%d%d%d",&a,&b,&c);  
+        a--; b--;  
+        add_Edge(i,a,b,c);  
+    }  
+  
+    int lens = zhuliu(0,n,m,edge);  
+  
+    if(lens==0||lens==-1) { printf("%d\n",lens); return 0; }  
+  
+    printf("%d\n",lens);  
+    for(int i=0;i<m;i++)  
+    {  
+        if(useE[i]&&edge[i].rcost)  
+            printf("%d ",i+1);  
+    }  
+    putchar(10);  
+  
+    return 0;  
+}  
+\end{lstlisting}
+
+\subsection{2-SAT}
+\begin{lstlisting}
+#include<cstdio>
+#include<vector>
+#include<stack>
+using namespace std;
+const int maxn=600;
+
+struct twosat{
+	int n;
+	vector<int> g[maxn*2];
+	bool mark[maxn*2];
+	stack<int> s;
+	
+	void add(int x,int xx,int y,int yy){
+		x=x*2+xx;
+		y=y*2+yy;
+		g[x^1].push_back(y);
+		g[y^1].push_back(x);
+	}
+	
+	bool dfs(int x){
+		if (mark[x^1]) return false;
+		if (mark[x]) return true;
+		mark[x]=true;
+		s.push(x);
+		for (int i=0; i<g[x].size(); i++)
+			if (!dfs(g[x][i])) return false;
+		return true;
+	}
+	
+	bool solve(){
+		for (int i=0;i<n*2;i+=2)
+		if (!mark[i] && !mark[i+1]){
+			while (!s.empty()) s.pop();
+			if (!dfs(i)){
+				while (!s.empty()){
+					mark[s.top()]=false;
+					s.pop();
+				}
+				if (!dfs(i+1)) return false;
+			}
+		}
+		return true;
+	}
+} g;
+
+int a[maxn],b[maxn];
+
+int main(){
+	int n,m;
+	scanf("%d %d",&n,&m);
+	for (int i=1;i<=m;i++){
+		scanf("%d %d",&a[i],&b[i]);
+		if (a[i]>b[i]){ int c=a[i]; a[i]=b[i]; b[i]=c; }
+	}	
+	g.n=m;	
+	for (int i=1;i<=m;i++)
+	for (int j=1;j<=m;j++)
+	if ( a[i]<a[j] && a[j]<b[i] && b[i]<b[j] ){	
+		g.add(i,0,j,0);
+		g.add(i,1,j,1);
+	}
+	if (g.solve()) printf("panda is telling the truth..."); else printf("the evil panda is lying again");
+	return 0;
+}
+\end{lstlisting}
+
+\subsection{稳定婚姻问题}
+\begin{lstlisting}
+#include<cstdio>
+#include<cctype>
+#include<queue>
+#include<cstring>
+using namespace std;
+
+char readchar(){
+	int i=getchar();
+	while (!isalpha(i)) i=getchar();
+	return i;
+}
+
+const int maxn=50;
+
+int list[maxn][maxn], order[maxn][maxn], next[maxn];
+int a[maxn],b[maxn];
+int na[200],nb[200],name[200];
+queue<int> q;
+
+void init(){
+	memset(next,0,sizeof(next));
+	memset(a,0,sizeof(a));
+	memset(b,0,sizeof(b));
+	memset(na,0,sizeof(na));
+}	
+
+void engage(int x,int y){
+	int m=b[y];
+	if (m){
+		a[m]=0;
+		q.push(m);
+	}
+	a[x]=y; b[y]=x;
+}	
+
+int main(){
+	int t; scanf("%d",&t);
+	while (t--){
+		init();
+		int n;
+		scanf("%d",&n);
+				
+		for (int i=1;i<=n;i++){
+			char j=readchar();
+			na[j]=i;
+		}
+		for (int i=1;i<=n;i++){
+			char j=readchar();
+			nb[j]=i;
+			name[i]=j;
+		}
+		for (int i=1;i<=n;i++){
+			char c=readchar();
+			for (int j=1;j<=n;j++){
+				char d=readchar();
+				list[na[c]][j]=nb[d];
+			}
+		}
+		for (int i=1;i<=n;i++){
+			char c=readchar();
+			for (int j=1;j<=n;j++){
+				char d=readchar();
+				order[nb[c]][na[d]]=j;
+			}
+		}
+		
+		for (int i=1;i<=n;i++) q.push(i);
+		
+		while (!q.empty()){
+			int i=q.front(); q.pop();
+			int j=list[i][++next[i]];
+			if (!b[j]) engage(i,j);
+			else if(order[j][i]<order[j][b[j]]) engage(i,j);
+			else q.push(i);
+		}
+		
+		for (char i='A';i<='z';i++)
+		if (na[i]){
+			char j=name[a[na[i]]];
+			printf("%c %c\n",i,j);
+		}
+		printf("\n");
+	}
+	return 0;
+}
+\end{lstlisting}
+
+\subsection{hzwer的K短路}
+\begin{lstlisting}
+#include<ext/pb_ds/priority_queue.hpp>
+#define pa pair<int,int>
+#define inf 2000000000
+using namespace std;
+using namespace __gnu_pbds;
+inline int read()
+{
+    int x=0,f=1;char ch=getchar();
+    while(ch<'0'||ch>'9'){if(ch=='-')f=-1;ch=getchar();}
+    while(ch>='0'&&ch<='9'){x=x*10+ch-'0';ch=getchar();}
+    return x*f;
+}
+typedef __gnu_pbds::priority_queue<pa,greater<pa> > heap;
+int n,m,K,cnt,cnt2;
+int ans[105];
+int d[10005],g[10005],tim[10005];
+int last[10005],last2[10005];
+heap q;
+heap::point_iterator id[10005];
+struct edge{int to,next,v;}e[10005],ed[10005];
+void insert(int u,int v,int w)
+{
+	e[++cnt].to=v;e[cnt].next=last[u];last[u]=cnt;e[cnt].v=w;
+	ed[++cnt2].to=u;ed[cnt].next=last2[v];last2[v]=cnt2;ed[cnt2].v=w;
+}
+void dijkstra()
+{
+	for(int i=1;i<=n;i++)d[i]=inf;
+	d[1]=0;
+	id[1]=q.push(make_pair(0,1));
+	while(!q.empty())
+	{
+		int now=q.top().second;q.pop();
+		for(int i=last2[now];i;i=ed[i].next)
+			if(ed[i].v+d[now]<d[ed[i].to])
+			{
+				d[ed[i].to]=d[now]+ed[i].v;
+				if(id[ed[i].to]!=0)
+					q.modify(id[ed[i].to],make_pair(d[ed[i].to],ed[i].to));
+				else id[ed[i].to]=q.push(make_pair(d[ed[i].to],ed[i].to));
+			}
+	}
+}
+void astar()
+{
+    if(d[n]==inf)return;
+    q.push(make_pair(d[n],n));
+	while(!q.empty())
+	{
+		int now=q.top().second,dis=q.top().first;q.pop();
+		tim[now]++;
+		if(now==1)ans[tim[now]]=dis;
+		if(tim[now]<=K)
+			for(int i=last[now];i;i=e[i].next)
+				q.push(make_pair(dis-d[now]+d[e[i].to]+e[i].v,e[i].to));
+	}
+}
+int main()
+{
+	n=read();m=read();K=read();
+	for(int i=1;i<=m;i++)
+	{
+		int u=read(),v=read(),w=read();
+		insert(u,v,w);
+	}
+	dijkstra();
+	astar();
+	for(int i=1;i<=K;i++)
+		if(ans[i])printf("%d\n",ans[i]);
+		else puts("-1");
+	return 0;
+}
+\end{lstlisting}
+
+
 \section{数据结构}
 
 \subsection{哈希表}
@@ -725,6 +1512,78 @@ struct hash_map{
 		return e[i].da;
 	}
 };
+\end{lstlisting}
+
+\subsection{RMQ}
+\begin{lstlisting}
+inline void rmq(int n){
+	for(int i=0,k=1; k<n; k<<=1,i++)
+	forto(j,1,n-k) f[j][i+1]=MAX(f[j][i],f[j+k][i]);
+}
+inline int getrmq(int l, int r){
+	int len=r-l+1, i=0, k=1;
+	while (k<<1<=len){ k<<=1; i++; }
+	return MAX(f[l][i],f[r-k+1][i]);
+}
+\end{lstlisting}
+
+\subsection{树状数组}
+\begin{lstlisting}
+inline int sum(int x){
+	int s=0;
+	while (x>0){ s+=a[x]; x-=x&-x; }
+	return s;
+}
+inline void add(int x, int d){
+	while (x<=n){ a[x]+=d; x+=x&-x; }
+}
+\end{lstlisting}
+
+\subsection{LCT}
+\begin{lstlisting}
+int n,fa[maxn],ch[maxn][2];
+inline void ir(int x){ return ch[fa[x]][0]!=x && ch[fa[x]][1]!=x; }
+inline void nt(int x){ return ch[fa[x]][1]==x; }
+inline void ud(int x){ ... }
+inline void pd(int x){ ... }
+
+inline void rtt(int x){
+	int y=fa[x], z=fa[y], bool p=nt(x);
+	if (!ir(y)) ch[z][nt(y)]=x;
+	fa[ch[x][!p]]=y; fa[y]=x; fa[x]=z;
+	ch[y][p]=ch[x][!p]; ch[x][!p]=y;
+	ud(y);
+}
+inline void splay(int x){
+	static int sta[maxn],top;
+	sta[top=1]=x;
+	for(int y=x;!ir(y);y=fa[y]) sta[++top]=fa[y];
+	while (top) pd(sta[top--]);
+	while (!ir(x)){
+		int y=fa[x];
+		if (!ir(y)) rtt(nt(x)^nt(y)?x:y);
+		rtt(x);
+	}
+	ud(x);
+}
+inline void access(int x){
+	int t=0,y=x;
+	while(x){
+		splay(x); ch[x][1]=t;
+		t=x; x=fa[x];
+	}
+	splay(y);
+}
+
+inline void link(int c, int f){ access(c); fa[c]=f; }
+inline void cut(int x){ access(x); fa[ch[x][0]]=0; ch[x][0]=0; ud(x); }
+inline void makeroot(int x){ access(x); rev[x]^=1; }
+
+inline int find(int x){
+	access(x);
+	int y=x; while (ch[y][0]) y=ch[y][0];
+	return y;
+}
 \end{lstlisting}
 
 \subsection{左偏树}
