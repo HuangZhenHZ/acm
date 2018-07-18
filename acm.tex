@@ -22,8 +22,8 @@
 \subsection{代码开头}
 \begin{lstlisting}
 #include <bits/stdc++.h>
-#define forto(i,a,b) for(int i=(a);i<=(b);i++)
-#define fordown(i,a,b) for(int i=(a);i>=(b);i--)
+#define forto(i,a,b) for(int i=(a); i<=(b); ++i)
+#define fordown(i,a,b) for(int i=(a); i>=(b); --i)
 #define forE(i,x) for(int i=la[x]; i; i=e[i].ne)
 #define forv(i,v) for(size_t i=0; i<(v).size(); ++i)
 int &cmin(int &x, int y) { return x>y?x=y:x; }
@@ -119,6 +119,15 @@ sort(t+1,t+n+1);
 int m=unique(t+1,t+n+1)-(t+1);
 forto(i,1,n) a[i]=lower_bound(t+1,t+1+m,a[i])-t;
 
+// unique
+std::unique (myvector.begin(), myvector.end(), myfunction);
+// myfuntion ：相等返回true
+
+sort(a,a+n);
+vector<int> v(a,a+n);
+vector<int>::iterator it=unique(v.begin(),v.end());
+v.erase(it,v.end());
+
 // next_permutation
 forto(i,1,n) a[i]=i;
 do {
@@ -143,11 +152,93 @@ s.insert(t+1,t+n+1);
 
 \subsection{快速幂}
 \begin{lstlisting}
-IL int pow(int a, LL b, int n){  //a^b mod n
+int pow(int a, LL b, int n){  //a^b mod n
 	static int p; p=1;
 	for(;b;b>>=1,a=LL(a)*a%n)
 		if (b&1) p=LL(p)*a%n;
     return p;
+}
+
+LL mul(LL a, LL b, LL p){
+    LL t=(a*b- LL((long double)a*b/p+1e-7) *p);
+    return t<0?t+p:t;
+}
+
+LL pow(LL a, LL b, LL n){  //a^b mod n
+    LL p=1;
+    for(;b;b>>=1,a=mul(a,a,n))
+		if (b&1) p=mul(p,a,n);
+    return p;
+}
+\end{lstlisting}
+
+\subsection{Miller_Rabin+Rho}
+\begin{lstlisting}
+// 2,7,61 : < 4759123141
+// 2,3,5,7,11,13,17 : < 341550071728320
+// 2,3,7,61,24251 : < 10^16 only 46856248255981
+
+//BZOJ-3667
+#include<cstdio>
+#include<cstdlib>
+typedef long long ll;
+ll _,n,x,ans,st;
+ll gcd(ll x,ll y){return y==0?x:gcd(y,x%y);}
+#define abs(x) (x>0?x:-(x))
+#define cmax(a,b) (a<b?a=b:1)
+ll mul(ll a,ll b,ll p){
+    ll tmp=(a*b-(ll)((long double)a/p*b+1e-7)*p);
+    return tmp<0?tmp+p:tmp;
+}
+ll power(ll t,ll k,ll p){
+    ll f=1;
+    for(;k;k>>=1,t=mul(t,t,p))if(k&1)f=mul(f,t,p);
+    return f;
+}
+bool check(ll a,int k,ll p,ll q){
+    ll t=power(a,q,p);
+    if(t==1||t==p-1)return 1;
+    for(;k--;){
+        t=mul(t,t,p);
+        if(t==p-1)return 1;
+    }
+    return 0;
+}
+bool mr(ll p){
+    if(p<=1)return 0;
+    if(p==2)return 1;
+    if(~p&1)return 0;
+    ll q=p-1;int i,k=0;
+    while(~q&1)q>>=1,k++;
+    for(i=0;i<5;i++)
+    if(!check(rand()%(p-1)+1,k,p,q))return 0;
+    return 1;
+}
+ll rho(ll n,ll c){
+    ll x=rand()%n,y=x,p=1;
+    while(p==1)
+        x=(mul(x,x,n)+c)%n,
+        y=(mul(y,y,n)+c)%n,
+        y=(mul(y,y,n)+c)%n,
+        p=gcd(n,abs(x-y));
+    return p;
+}
+void solve(ll n){
+    if(n==1)return;
+    if(mr(n)){cmax(ans,n);return;}
+    if(~n&1)cmax(ans,2),solve(n>>1);
+    else{
+        ll t=n;
+        while(t==n)t=rho(n,rand()%(n-1)+1);
+        solve(t),solve(n/t);
+    }
+}
+int main(){
+    for(srand(1626),scanf("%lld",&_);_--;){
+        scanf("%lld",&x),ans=0;solve(x);
+        if(ans==x)puts("Prime");
+        else printf("%lld\n",ans);
+    }
 }
 \end{lstlisting}
 
@@ -274,18 +365,18 @@ int bsgs(int a,ll b,int p){
 \subsection{Lucas}
 \begin{lstlisting}
 void init_Lucas(){
-	fac[0]=1; forto(i,1,MOD-1) fac[i]=fac[i-1]*i%MOD;
-	inv[1]=1; forto(i,2,MOD-1) inv[i]=(MOD-MOD/i)*inv[MOD%i]%MOD;
-	inv[0]=1; forto(i,1,MOD-1) inv[i]=inv[i-1]*inv[i]%MOD;
+	fac[0]=1; forto(i,1,P-1) fac[i]=fac[i-1]*i%P;
+	inv[1]=1; forto(i,2,P-1) inv[i]=(P-P/i)*inv[P%i]%P;
+	inv[0]=1; forto(i,1,P-1) inv[i]=inv[i-1]*inv[i]%P;
 }
 
 IL LL C(int n, int m){
 	LL ans=1;
 	while (n||m){
-		int a=n%MOD, b=m%MOD;
-		n/=MOD; m/=MOD;
+		int a=n%P, b=m%P;
+		n/=P; m/=P;
 		if (a<b) return 0;
-		ans= ans *fac[a]%MOD *inv[b]%MOD *inv[a-b]%MOD;
+		ans= ans *fac[a]%P *inv[b]%P *inv[a-b]%P;
 	}
 	return ans;
 }
@@ -298,7 +389,9 @@ IL LL C(int n, int m){
 struct R{
 	LL x,y;
 
-	IL void sim(){ 
+	IL void sim(){
+		// assert(y==0);
+		// assert(x==0 &&　y==0);
 		if (y<0) { x=-x; y=-y; }
 		LL d=gcd(ABS(x),y);
 		x/=d; y/=d;
@@ -344,7 +437,7 @@ void solve(){
 		scanf("%lld",&a[i][j].x);
 		a[i][j].y=1;
 	}
-	 
+	
 	int i=1, j=1;
 	while (i<=n && j<=m){
 		int k=i;
@@ -504,7 +597,7 @@ void initfft(int n){
 }
 
 void fft(int n, P a[], P w[]){
-	forto(i,0,n-1) if (i<rev[i]) { P t=a[i]; a[i]=a[rev[i]]; a[rev[i]]=t; }
+	forto(i,0,n-1) if (i<rev[i]) swap(a[i],a[rev[i]]);
 	for(int k=1;k<n;k<<=1)
 	for(int i=0;i<n;i+=k<<1)
 	for(int j=0;j<k;j++){
@@ -743,6 +836,221 @@ int main() {
 }
 \end{lstlisting}
 
+\subsection{FWT}
+\begin{lstlisting}
+void FWT(int a[],int n)
+{
+    for(int d=1;d<n;d<<=1)
+        for(int m=d<<1,i=0;i<n;i+=m)
+            for(int j=0;j<d;j++)
+            {
+                int x=a[i+j],y=a[i+j+d];
+                a[i+j]=(x+y)%mod,a[i+j+d]=(x-y+mod)%mod;
+                //xor:a[i+j]=x+y,a[i+j+d]=x-y;
+                //and:a[i+j]=x+y;
+                //or:a[i+j+d]=x+y;
+            }
+}
+ 
+void UFWT(int a[],int n)
+{
+    for(int d=1;d<n;d<<=1)
+        for(int m=d<<1,i=0;i<n;i+=m)
+            for(int j=0;j<d;j++)
+            {
+                int x=a[i+j],y=a[i+j+d];
+                a[i+j]=1LL*(x+y)*rev%mod,a[i+j+d]=(1LL*(x-y)*rev%mod+mod)%mod;
+                //xor:a[i+j]=(x+y)/2,a[i+j+d]=(x-y)/2;
+                //and:a[i+j]=x-y;
+                //or:a[i+j+d]=y-x;
+            }
+}
+
+void solve(int a[],int b[],int n)
+{
+    FWT(a,n);
+    FWT(b,n);
+    for(int i=0;i<n;i++) a[i]=1LL*a[i]*b[i]%mod;
+    UFWT(a,n);
+}
+\end{lstlisting}
+
+\subsection{斯坦纳树}
+\begin{lstlisting}
+#include <bits/stdc++.h>
+#define forto(i,a,b) for(int i=(a);i<=(b);i++)
+using namespace std;
+typedef unsigned long long LL;
+#define isd(x) ((x)>='0'&&(x)<='9')
+
+LL read(){
+	LL x=0;
+	char c=getchar();
+	while (!isd(c) && c!='.') c=getchar();
+	while (isd(c)){
+		x=x*10+c-'0';
+		c=getchar();
+	}
+	return x;
+}
+
+const LL P=1000000000;
+
+LL zs,xs;
+
+int comp(LL x, LL y){
+	LL xx=x, yy=y;
+	if (y==0) return 1;
+	LL z=x/y; x%=y;
+	if (z>zs) return 1;
+	if (z<zs) return -1;
+	x*=P; LL t1=x/y; x%=y;
+	x*=P; LL t2=x/y; x%=y;
+	LL ans = t1*P + t2;
+	if (x*2>=y) ans++;
+	if (ans>xs) return 1;
+	if (ans<xs) return -1;
+	printf("%lld %lld\n",xx,yy);
+	return 0;
+}
+
+void solve(){
+	zs=read(); xs=read();
+	if (xs==0){
+		printf("%lld 1\n",zs);
+		return;
+	}
+	LL lx=0, ly=1, rx=1, ry=0;
+	while (true){
+		LL lk=0, rk=min(rx?(P-lx)/rx:P ,ry?(P-ly)/ry:P);
+		
+		while (lk<rk){
+			LL mk=(lk+rk+1)>>1;
+			int t=comp(lx+mk*rx,ly+mk*ry);
+			if (t==0) return;
+			if (t==1) rk=mk-1; else lk=mk;
+		}
+		lx+=lk*rx; ly+=lk*ry;
+		
+		   lk=0, rk=min(lx?(P-rx)/lx:P, ly?(P-ry)/ly:P);
+		
+		while (lk<rk){
+			LL mk=(lk+rk+1)>>1;
+			int t=comp(rx+mk*lx,ry+mk*ly);
+			if (t==0) return;
+			if (t==1) lk=mk; else rk=mk-1;
+		}
+		rx+=lk*lx; ry+=lk*ly;
+		
+		if (!comp(lx,ly)) return;
+		if (!comp(rx,ry)) return;
+	}
+}
+
+int main(){
+	//freopen("e.in","r",stdin);
+	int t; scanf("%d",&t);
+	while (t--) solve();
+	return 0;
+}
+\end{lstlisting}
+
+\subsection{线性递推}
+\begin{lstlisting}
+//BZOJ-4161
+给定数列 {hn} 前 k 项，其后每一项满足
+hn = a1*h(n-1) + a2*h(n-2) + ... + ak*h(n-k)
+其中 a1,a2...ak 为给定数列。请计算 h(n)，并将结果对 1000000007 取模输出。
+
+#include<cstdio>
+#define p 1000000007
+long long c[4010];
+int n,k,u[2010],ans,x;int cnt;
+struct P{int s[2010];}f,t;
+void mult(P&a,const P&b){
+    for(int i=0;i<k+k-1;i++)c[i]=0;
+    for(int i=0;i<k;i++)
+    for(int j=0;j<k;j++){
+        c[i+j]+=1LL*a.s[i]*b.s[j];
+        if(c[i+j]>=1LL<<62)c[i+j]%=p;
+    }
+    for(int i=k+k-2;~i;i--)
+    if(c[i]%=p,i>=k){
+        for(int j=0;j<k;j++){
+            c[i-1-j]+=c[i]*u[j];
+            if(c[i-1-j]>=1LL<<62)c[i-1-j]%=p;
+        }
+        c[i]=0;
+    }
+    for(int i=0;i<k;i++)a.s[i]=c[i];
+}
+int main(){
+    scanf("%d%d",&n,&k);
+    for(int i=0;i<k;i++)scanf("%d",u+i),u[i]%=p,u[i]<0?u[i]+=p:1;
+    for(t.s[1]=f.s[0]=1;n;n>>=1,mult(t,t))if(n&1)mult(f,t);
+    for(int i=0;i<k;i++)scanf("%d",&x),x%=p,x<0?x+=p:1,ans=(ans+1LL*x*f.s[i])%p;
+    printf("%d\n",ans);
+}
+\end{lstlisting}
+
+\subsection{求phi/miu的前缀和}
+\begin{lstlisting}
+时间复杂度：O(n^{2/3})
+//BZOJ-3944（多组数据）
+#include<cstdio>
+#include<cmath>
+typedef long long ll;
+typedef unsigned U;
+const ll oo=1LL<<60;
+#define N 1<<22
+const int M=(1<<18)-1;
+int n,k,p[N],t,vis[N],T,a[20];ll phi[N],miu[N];
+class map{public:
+    int et,la[M+1];
+    struct E{int nxt;U x;ll ans;}e[1<<18];
+    inline ll find(U x){
+        for(int i=la[x&M];i;i=e[i].nxt)
+        if(e[i].x==x)return e[i].ans;
+        return -oo;
+    }
+    inline void ins(U x,ll ans){
+        e[++et]=(E){la[x&M],x,ans},la[x&M]=et;
+    }
+}_phi,_miu;
+ll getphi(U n){
+    if(n<=k)return phi[n];
+    ll ans=_phi.find(n);
+    if(ans!=-oo)return ans;ans=n*(n+1LL)/2;
+    for(U l=2,r;l<=n;l=r+1)r=n/(n/l),ans-=(r-l+1)*getphi(n/l);
+    return _phi.ins(n,ans),ans;
+}
+ll getmiu(U n){
+    if(n<=k)return miu[n];
+    ll ans=_miu.find(n);
+    if(ans!=-oo)return ans;ans=1;
+    for(U l=2,r;l<=n;l=r+1)r=n/(n/l),ans-=(r-l+1)*getmiu(n/l);
+    return _miu.ins(n,ans),ans;
+}
+int main(){
+    scanf("%d",&T);
+    for(int i=1;i<=T;i++)scanf("%d",a+i),n<a[i]?n=a[i]:1;
+    k=2.5*pow(n,2.0/3)+1;phi[1]=miu[1]=1;
+    for(int i=2;i<=k;i++){
+        if(!vis[i])p[++t]=i,phi[i]=i-1,miu[i]=-1;
+        for(int j=1;j<=t&&i*p[j]<=k;j++){
+            vis[i*p[j]]=1;
+            if(i%p[j]==0){
+                phi[i*p[j]]=phi[i]*p[j];
+                break;
+            }
+            phi[i*p[j]]=phi[i]*phi[p[j]],miu[i*p[j]]=-miu[i];
+        }
+    }
+    for(int i=2;i<=k;i++)phi[i]+=phi[i-1],miu[i]+=miu[i-1];
+    for(int i=1;i<=T;i++)printf("%lld %lld\n",getphi(a[i]),getmiu(a[i]));
+}
+\end{lstlisting}
+
 \section{字符串}
 
 \subsection{KMP}
@@ -771,7 +1079,7 @@ void extkmp(char s1[], int ext1[], char s2[], int ext2[]){
 		else {
 			len=j-i+1;
 			if (len<0) len=0;
-			while (s1[i+len]==s2[len+1]&& len<len2) len++;
+			while (s1[i+len]==s2[len+1] && len<len2) len++;
 			ext1[i]=len;
 			k=i; j=i+len-1;
 		}
@@ -978,6 +1286,18 @@ int main(){
 }
 \end{lstlisting}		
 
+\subsection{AC自动机}
+\begin{lstlisting}
+//ch是建好的Trie
+void build_AC(){
+    for(q[l=r=0]=0;l<=r;l++)
+    for(int i=0,j;i<26;i++)
+    if(j=ch[q[l]][i]){
+        if(q[++r]=j,q[l])fail[j]=ch[fail[q[l]]][i];
+    }
+    else ch[q[l]][i]=ch[fail[q[l]]][i];
+}
+\end{lstlisting}
 
 \section{图论}
 
