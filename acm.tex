@@ -10,6 +10,19 @@
 \usepackage{listings}
 \lstset{language=c++,numbers=left,frame=single,tabsize=4,breaklines=true,basicstyle=\small}
 
+\usepackage{titletoc}
+\usepackage[toc]{multitoc}
+
+\titlecontents{section}
+  [2cm]
+  {\bf\contentslabel{0.5cm}}{}{}
+  {\hspace{0.5cm}\nobreak\itshape\contentspage}
+  
+\titlecontents{subsection}
+  [2cm]
+  {\contentslabel{1.5cm}}{}{}  
+  {\hspace{0.5cm}\nobreak\itshape\contentspage}
+
 \begin{document}
 
 \title{HZ的临时acm模板}
@@ -145,6 +158,16 @@ a.insert(b.begin(),b.end());
 set<int> s;
 int t[N];
 s.insert(t+1,t+n+1);
+
+// find_if
+std::find_if (myvector.begin(), myvector.end(), IsOdd);
+
+// nth_element
+std::nth_element (myvector.begin(), myvector.begin()+5, myvector.end());  // 6th
+std::nth_element (myvector.begin(), myvector.begin()+5, myvector.end(),myfunction);
+
+// max_element(a+1,a+n+1)
+// min_element(a+1,a+n+1)
 \end{lstlisting}
 
 
@@ -172,7 +195,7 @@ LL pow(LL a, LL b, LL n){  //a^b mod n
 }
 \end{lstlisting}
 
-\subsection{Miller_Rabin+Rho}
+\subsection{Miller Rabin}
 \begin{lstlisting}
 // 2,7,61 : < 4759123141
 // 2,3,5,7,11,13,17 : < 341550071728320
@@ -1874,7 +1897,7 @@ int main(){
 }
 \end{lstlisting}
 
-\subsection{KM}
+\subsection{KM算法}
 \begin{lstlisting}
 #include<cstdlib>
 #include<cstdio>
